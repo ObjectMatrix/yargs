@@ -2,7 +2,7 @@
 /* global describe, it, beforeEach, afterEach */
 
 const {expect} = require('chai')
-const middlewareFactory = require('../lib/middleware')
+const {globalMiddlewareFactory} = require('../lib/middleware')
 let yargs
 require('chai').should()
 
@@ -10,14 +10,14 @@ describe('middleware', () => {
   beforeEach(() => {
     yargs = require('../')
   })
-
   afterEach(() => {
     delete require.cache[require.resolve('../')]
   })
+
   it('should add a list of callbacks to global middleware', () => {
     const globalMiddleware = []
 
-    middlewareFactory(globalMiddleware)(['callback1', 'callback2'])
+    globalMiddlewareFactory(globalMiddleware)(['callback1', 'callback2'])
 
     globalMiddleware.should.have.lengthOf(2)
   })
@@ -25,7 +25,7 @@ describe('middleware', () => {
   it('should add a single callback to global middleware', () => {
     const globalMiddleware = []
 
-    middlewareFactory(globalMiddleware)(function () {})
+    globalMiddlewareFactory(globalMiddleware)(function () {})
 
     globalMiddleware.should.have.lengthOf(1)
   })
@@ -49,7 +49,7 @@ describe('middleware', () => {
       .parse()
   })
 
-  it('runs the before-validation middlware before reaching the handler', function (done) {
+  it('runs before validation if beforeValidation = true', function (done) {
     yargs(['mw'])
       .middleware(function (argv) {
         argv.mw = 'mw'
@@ -99,32 +99,6 @@ describe('middleware', () => {
       .parse()
   })
 
-  it('runs the before-validation middlware with an array passed in and ensures theres a context object with commands and availableOptions', function (done) {
-    yargs(['mw'])
-      .middleware([function (argv) {
-        argv.mw = 'mw'
-        argv.other = true
-      }], true)
-      .command(
-        'mw',
-        'adds func to middleware',
-        {
-          'mw': {
-            'demand': true,
-            'string': true
-          }
-        },
-        function (argv) {
-          // we should get the argv filled with data from the middleware
-          argv.mw.should.equal('mw')
-          argv.other.should.equal(true)
-          return done()
-        }
-      )
-      .exitProcess(false) // defaults to true.
-      .parse()
-  })
-
   it('runs the before-validation middlware ensures if an async function is ran it throws an error', function (done) {
     try {
       yargs(['mw'])
@@ -151,7 +125,7 @@ describe('middleware', () => {
         .exitProcess(false) // defaults to true.
         .parse()
     } catch (err) {
-      expect(err.message).to.equal('The passed in middleware with applyBeforeValidation set to true may not be used with async functions.')
+      expect(err.message).to.equal('middleware cannot return a promise when applyBeforeValidation is true')
       done()
     }
   })
